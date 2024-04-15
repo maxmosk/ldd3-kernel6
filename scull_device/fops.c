@@ -32,29 +32,25 @@ int scull_trim(struct scull_dev* dev)
 static struct scull_qset *scull_follow(struct scull_dev *dev, int n)
 {
     pr_info("scull_follow called\n");
-	struct scull_qset *qs = dev->data;
-
-	/* Allocate first qset explicitly if need be */
-	if (!qs) {
-		qs = dev->data = kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
-		if (qs == NULL)
-			return NULL;  /* Never mind */
-
-		memset(qs, 0, sizeof(struct scull_qset));
-	}
-
-	while (n--) {
-		if (!qs->next) {
-			qs->next = kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
-			if (qs->next == NULL)
-				return NULL;
-
-			memset(qs->next, 0, sizeof(struct scull_qset));
-		}
-		qs = qs->next;
-		continue;
-	}
-	return qs;
+    struct scull_qset *qs = dev->data;  
+    /* Allocate first qset explicitly if need be */
+    if (!qs) {
+        qs = dev->data = kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
+        if (qs == NULL)
+            return NULL;  /* Never mind */  
+        memset(qs, 0, sizeof(struct scull_qset));
+    }   
+    while (n--) {
+        if (!qs->next) {
+    	    qs->next = kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
+    	    if (qs->next == NULL)
+                return NULL;
+            memset(qs->next, 0, sizeof(struct scull_qset));
+        }
+        qs = qs->next;
+        continue;
+    }
+    return qs;
 }
 
 ssize_t scull_read (struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
