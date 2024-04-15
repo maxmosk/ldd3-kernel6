@@ -18,12 +18,30 @@ static int major; // device major number assigned to scull device;
 static struct class *cls; // device class;
 struct scull_dev *scull_device;
 
+/* 
+Note about ioctl:
+
+Explanation: When ioctl was executed, it took the Big Kernel Lock (BKL),
+so nothing else could execute at the same time. This is very bad on a multiprocessor machine,
+so there was a big effort to get rid of the BKL. First, unlocked_ioctl was introduced.
+It lets each driver writer choose what lock to use instead. This can be difficult,
+so there was a period of transition during which old drivers still worked (using ioctl)
+but new drivers could use the improved interface (unlocked_ioctl).
+Eventually all drivers were converted and ioctl could be removed.
+
+compat_ioctl is actually unrelated, even though it was added at the same time.
+Its purpose is to allow 32-bit userland programs to make ioctl calls on a 64-bit kernel.
+The meaning of the last argument to ioctl depends on the driver, so there is no way to do a driver-independent conversion.
+
+*/
+
 static struct file_operations scull_fops = {
     .owner = THIS_MODULE,
     .open = scull_open,
     .read = scull_read,
     .write = scull_write,
     .release = scull_release,
+    .unlocked_ioctl = scull_ioctl,
 };
 
 void scull_cleanup(void)
