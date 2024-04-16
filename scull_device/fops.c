@@ -23,8 +23,8 @@ int scull_trim(struct scull_dev* dev)
     }
 
     dev->size = 0;
-    dev->quantum = SCULL_QUANTUM;
-    dev->qset = SCULL_QSET;
+    dev->quantum = scull_quantum;
+    dev->qset = scull_qset;
     dev->data = NULL;
     return 0;
 }
