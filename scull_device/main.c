@@ -41,6 +41,7 @@ static struct file_operations scull_fops = {
     .read = scull_read,
     .write = scull_write,
     .release = scull_release,
+    .llseek = scull_llseek,
     .unlocked_ioctl = scull_ioctl,
 };
 

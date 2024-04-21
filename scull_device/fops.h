@@ -35,5 +35,6 @@ extern int scull_open (struct inode *, struct file *);
 extern int scull_release (struct inode *, struct file *);
 extern long scull_ioctl (struct file *, unsigned int, unsigned long);
 extern int scull_trim(struct scull_dev*);
+extern loff_t scull_llseek (struct file *, loff_t, int);
 
 #endif
