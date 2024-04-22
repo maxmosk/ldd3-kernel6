@@ -268,3 +268,30 @@ long scull_ioctl (struct file *filp, unsigned int cmd, unsigned long arg)
 
     return retval;
 }
+
+loff_t scull_llseek(struct file *filp, loff_t off, int whence)
+{
+    pr_info("scull_llseek called\n");
+    struct scull_dev *dev = filp->private_data;
+    loff_t newpos;
+
+    switch(whence) {
+        case 0: /* SEEK_SET */
+            newpos = off;
+            break;
+        case 1: /* SEEK_CUR */
+            newpos = filp->f_pos + off;
+            break;
+        case 2: /* SEEK_END */
+            newpos = dev->size + off;
+            break;
+        default: /* can't be happened */
+            return -EINVAL;
+    }
+
+    if (newpos < 0)
+        return -EINVAL;
+
+    filp->f_pos = newpos;
+    return newpos;
+}
