@@ -47,6 +47,7 @@ static struct file_operations scull_fops = {
 
 void scull_cleanup(void)
 {
+    dev_t dev = MKDEV(major, 0);
     if (scull_device) {
         scull_trim(scull_device);
         cdev_del(&scull_device->cdev);
@@ -56,17 +57,21 @@ void scull_cleanup(void)
     device_destroy(cls, MKDEV(major, 0));
     class_destroy(cls);
 
-    unregister_chrdev(major, DEVICE_NAME);
+    unregister_chrdev_region(dev, 1);
 }
 
 static int __init scull_init(void)
 {
-    major = register_chrdev(0, DEVICE_NAME, &scull_fops);
+    dev_t dev;
+    int alloc_ret = 1;
+    alloc_ret = alloc_chrdev_region(&dev, 0, 1, DEVICE_NAME);
 
-    if (major < 0) {
-        pr_alert("Cannot register char device with %d\n", major);
-        return major;
+    if (alloc_ret) {
+        pr_alert("Cannot register char device with\n");
+        return alloc_ret;
     }
+    
+    major = MAJOR(dev);
 
     pr_info("Assigned major number: %d.\n", major);
 
