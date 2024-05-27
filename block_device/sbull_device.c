@@ -78,7 +78,7 @@ static int _sbull_open(struct gendisk *disk, blk_mode_t mode)
 	}
 
     atomic_inc(&dev->open_counter);
-	pr_info("SBULL: Device was opened. There is %d users\n", dev->open_counter);
+	pr_info("SBULL: Device was opened. There is %d users\n", atomic_read(&dev->open_counter));
 
 	return 0;
 }
@@ -93,7 +93,7 @@ static void _sbull_release(struct gendisk *disk)
 	}
 
     atomic_dec(&dev->open_counter);
-	pr_info("SBULL: Device was closed. There is %d users\n", dev->open_counter);
+	pr_info("SBULL: Device was closed. There is %d users\n", atomic_read(&dev->open_counter));
 }
 
 int _sbull_ioctl(struct block_device *bdev, blk_mode_t mode,
