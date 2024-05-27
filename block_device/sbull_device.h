@@ -8,7 +8,7 @@
 #include <linux/types.h>
 
 #define DEVICE_NAME "sbulldev"
-#define DEVICE_CAPACITY 512
+#define DEVICE_CAPACITY 4096
 
 typedef struct sbull_dev_t
 {
