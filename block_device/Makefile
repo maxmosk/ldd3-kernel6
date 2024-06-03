@@ -1,8 +1,11 @@
 CONFIG_MODULE_SIG=n
 
+#ccflags-y += "-D BIO_BASED_SBULL"
+#ccflags-y += "-D PRINT_INFO"
+
 ifneq ($(KERNELRELEASE),)
 	sbull-objs := main.o sbull_device.o
-    obj-m := sbull.o
+	obj-m := sbull.o
 else
 	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)
