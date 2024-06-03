@@ -9,6 +9,12 @@ sbull_dev_t* sbull_device;
 
 static int __init sbull_init(void)
 {
+#ifndef BIO_BASED_SBULL
+    pr_info("SBULL: init sbull in request mode\n");
+#else
+    pr_info("SBULL: init sbull in bio mode\n");
+#endif
+
     int ret = 0;
     sbull_major = register_blkdev(sbull_major, DEVICE_NAME);
     if (sbull_major <= 0) {

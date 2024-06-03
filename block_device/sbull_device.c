@@ -46,7 +46,9 @@ static blk_status_t _queue_rq(struct blk_mq_hw_ctx *hctx, const struct blk_mq_qu
     if (process_request(rq, &nr_bytes))
         status = BLK_STS_IOERR;
 
+#ifdef PRINT_INFO
     pr_info("SBULL: request %llu:%d processed\n", blk_rq_pos(rq), nr_bytes);
+#endif
 
     blk_mq_end_request(rq, status);
 
@@ -59,6 +61,9 @@ static struct blk_mq_ops mq_ops = {
 #else //BIO_BASED
 static inline void process_bio(sbull_dev_t *dev, struct bio *bio)
 {
+#ifdef PRINT_INFO
+    pr_info("SBULL: process_bio called\n");
+#endif
     struct bio_vec bvec;
     struct bvec_iter iter;
     loff_t pos = bio->bi_iter.bi_sector << SECTOR_SHIFT;
@@ -71,7 +76,6 @@ static inline void process_bio(sbull_dev_t *dev, struct bio *bio)
         void *buf = page_address(bvec.bv_page) + bvec.bv_offset;
 
         if ((pos + len) > dev_size) {
-            /* len = (unsigned long)(dev_size - pos);*/
             bio->bi_status = BLK_STS_IOERR;
             break;
         }
@@ -85,6 +89,19 @@ static inline void process_bio(sbull_dev_t *dev, struct bio *bio)
     }
     bio_end_io_acct(bio, start_time);
     bio_endio(bio);
+}
+
+void _sbull_submit_bio(struct bio *bio)
+{
+#ifdef PRINT_INFO
+    pr_info("SBULL: submit_bio called\n");
+#endif
+
+    sbull_dev_t* dev = bio->bi_bdev->bd_disk->private_data;
+
+    might_sleep();
+
+    process_bio(dev, bio);
 }
 #endif
 
@@ -115,7 +132,9 @@ static int _sbull_open(struct gendisk *disk, blk_mode_t mode)
     }
 
     atomic_inc(&dev->open_counter);
+#ifdef PRINT_INFO
     pr_info("SBULL: Device was opened. There is %d users\n", atomic_read(&dev->open_counter));
+#endif
 
     return 0;
 }
@@ -130,7 +149,9 @@ static void _sbull_release(struct gendisk *disk)
     }
 
     atomic_dec(&dev->open_counter);
+#ifdef PRINT_INFO
     pr_info("SBULL: Device was closed. There is %d users\n", atomic_read(&dev->open_counter));
+#endif
 }
 
 static inline int ioctl_hdio_getgeo(sbull_dev_t *dev, unsigned long arg)
@@ -167,7 +188,9 @@ static inline int ioctl_hdio_getgeo(sbull_dev_t *dev, unsigned long arg)
 int _sbull_ioctl(struct block_device *bdev, blk_mode_t mode,
             unsigned cmd, unsigned long arg)
 {
+#ifdef PRINT_INFO
     pr_info("SBULL: ioctl was called");
+#endif
 
     sbull_dev_t *dev = bdev->bd_disk->private_data;
 
@@ -183,22 +206,13 @@ int _sbull_ioctl(struct block_device *bdev, blk_mode_t mode,
     return -ENOTTY;
 }
 
-void _scull_submit_bio(struct bio *bio)
-{
-    sbull_dev_t* dev = bio->bi_bdev->bd_disk->private_data;
-    
-    might_sleep();
-
-    process_bio(dev, bio);
-}
-
 static struct block_device_operations sbull_fops = {
     .owner = THIS_MODULE,
     .open = _sbull_open,
     .release = _sbull_release,
     .ioctl = _sbull_ioctl,
 #ifdef BIO_BASED_SBULL
-    .submit_bio = _scull_submit_bio,
+    .submit_bio = _sbull_submit_bio,
 #endif
 };
 
@@ -207,7 +221,6 @@ sbull_dev_t* sbull_add_device(int major)
     sbull_dev_t *dev = NULL;
     int ret = 0;
     struct gendisk *disk;
-
     pr_info("SBULL: add device '%s' capacity %d sectors\n", DEVICE_NAME, DEVICE_CAPACITY);
 
     dev = kzalloc(sizeof(sbull_dev_t), GFP_KERNEL);

@@ -9,7 +9,8 @@
 
 #define DEVICE_NAME "sbulldev"
 #define DEVICE_CAPACITY 4096
-#define BIO_BASED_SBULL
+//#define BIO_BASED_SBULL
+#define PRINT_INFO
 
 typedef struct sbull_dev_t
 {
