@@ -9,6 +9,7 @@
 
 #define DEVICE_NAME "sbulldev"
 #define DEVICE_CAPACITY 4096
+#define BIO_BASED_SBULL
 
 typedef struct sbull_dev_t
 {
@@ -23,3 +24,5 @@ sbull_dev_t* sbull_add_device(int major);
 void sbull_remove_device(sbull_dev_t* dev);
 
 #endif
+
+
