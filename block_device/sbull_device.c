@@ -1,105 +1,208 @@
 #include "sbull_device.h"
 
+#include <linux/hdreg.h>
+#include <linux/cdrom.h>
+
+#ifndef BIO_BASED_SBULL
 static inline int process_request(struct request *rq, unsigned int *nr_bytes)
 {
-	int ret = 0;
-	struct bio_vec bvec;
-	struct req_iterator iter;
-	sbull_dev_t *dev = rq->q->queuedata;
-	loff_t pos = blk_rq_pos(rq) << SECTOR_SHIFT;
-	loff_t dev_size = (dev->capacity << SECTOR_SHIFT);
+    int ret = 0;
+    struct bio_vec bvec;
+    struct req_iterator iter;
+    sbull_dev_t *dev = rq->q->queuedata;
+    loff_t pos = blk_rq_pos(rq) << SECTOR_SHIFT;
+    loff_t dev_size = (dev->capacity << SECTOR_SHIFT);
 
-	rq_for_each_segment(bvec, rq, iter) {
-		unsigned long len = bvec.bv_len;
-		void *buf = page_address(bvec.bv_page) + bvec.bv_offset;
+    rq_for_each_segment(bvec, rq, iter) {
+        unsigned long len = bvec.bv_len;
+        void *buf = page_address(bvec.bv_page) + bvec.bv_offset;
 
-		if ((pos + len) > dev_size)
-			len = (unsigned long)(dev_size - pos);
+        if ((pos + len) > dev_size)
+            len = (unsigned long)(dev_size - pos);
 
-		if (rq_data_dir(rq))
-			memcpy(dev->data + pos, buf, len); /* WRITE */
-		else
-			memcpy(buf, dev->data + pos, len); /* READ */
+        if (rq_data_dir(rq))
+            memcpy(dev->data + pos, buf, len); /* WRITE */
+        else
+            memcpy(buf, dev->data + pos, len); /* READ */
 
-		pos += len;
-		*nr_bytes += len;
-	}
+        pos += len;
+        *nr_bytes += len;
+    }
 
-	return ret;
+    return ret;
 }
 
 static blk_status_t _queue_rq(struct blk_mq_hw_ctx *hctx, const struct blk_mq_queue_data *bd)
 {
-	unsigned int nr_bytes = 0;
-	blk_status_t status = BLK_STS_OK;
-	struct request *rq = bd->rq;
+    unsigned int nr_bytes = 0;
+    blk_status_t status = BLK_STS_OK;
+    struct request *rq = bd->rq;
 
-	//might_sleep();
-	cant_sleep(); /* cannot use any locks that make the thread sleep */
+    //might_sleep();
+    cant_sleep(); /* cannot use any locks that make the thread sleep */
 
-	blk_mq_start_request(rq);
+    blk_mq_start_request(rq);
 
-	if (process_request(rq, &nr_bytes))
-		status = BLK_STS_IOERR;
+    if (process_request(rq, &nr_bytes))
+        status = BLK_STS_IOERR;
 
-	pr_info("SBULL: request %llu:%d processed\n", blk_rq_pos(rq), nr_bytes);
+#ifdef PRINT_INFO
+    pr_info("SBULL: request %llu:%d processed\n", blk_rq_pos(rq), nr_bytes);
+#endif
 
-	blk_mq_end_request(rq, status);
+    blk_mq_end_request(rq, status);
 
-	return status;
+    return status;
 }
 
 static struct blk_mq_ops mq_ops = {
     .queue_rq = _queue_rq,
 };
+#else //BIO_BASED
+static inline void process_bio(sbull_dev_t *dev, struct bio *bio)
+{
+#ifdef PRINT_INFO
+    pr_info("SBULL: process_bio called\n");
+#endif
+    struct bio_vec bvec;
+    struct bvec_iter iter;
+    loff_t pos = bio->bi_iter.bi_sector << SECTOR_SHIFT;
+    loff_t dev_size = (dev->capacity << SECTOR_SHIFT);
+    unsigned long start_time;
 
+    start_time = bio_start_io_acct(bio);
+    bio_for_each_segment(bvec, bio, iter) {
+        unsigned int len = bvec.bv_len;
+        void *buf = page_address(bvec.bv_page) + bvec.bv_offset;
+
+        if ((pos + len) > dev_size) {
+            bio->bi_status = BLK_STS_IOERR;
+            break;
+        }
+
+        if (bio_data_dir(bio))
+            memcpy(dev->data + pos, buf, len); /* WRITE */
+        else
+            memcpy(buf, dev->data + pos, len); /* READ */
+
+        pos += len;
+    }
+    bio_end_io_acct(bio, start_time);
+    bio_endio(bio);
+}
+
+void _sbull_submit_bio(struct bio *bio)
+{
+#ifdef PRINT_INFO
+    pr_info("SBULL: submit_bio called\n");
+#endif
+
+    sbull_dev_t* dev = bio->bi_bdev->bd_disk->private_data;
+
+    might_sleep();
+
+    process_bio(dev, bio);
+}
+#endif
+
+#ifndef BIO_BASED_SBULL
 static inline int init_tag_set(struct blk_mq_tag_set *set, void *data)
 {
-	set->ops = &mq_ops;
-	set->nr_hw_queues = 1;
-	set->nr_maps = 1;
-	set->queue_depth = 128;
-	set->numa_node = NUMA_NO_NODE;
-	set->flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_STACKING;
+    set->ops = &mq_ops;
+    set->nr_hw_queues = 1;
+    set->nr_maps = 1;
+    set->queue_depth = 128;
+    set->numa_node = NUMA_NO_NODE;
+    set->flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_STACKING;
 
-	set->cmd_size = 0;
-	set->driver_data = data;
+    set->cmd_size = 0;
+    set->driver_data = data;
 
-	return blk_mq_alloc_tag_set(set);
+    return blk_mq_alloc_tag_set(set);
 }
+#endif
 
 static int _sbull_open(struct gendisk *disk, blk_mode_t mode)
 {
-	sbull_dev_t *dev = disk->private_data;
+    sbull_dev_t *dev = disk->private_data;
 
-	if (!dev) {
-		pr_err("SBULL: Invalid disk private_data\n");
-		return -ENXIO;
-	}
+    if (!dev) {
+        pr_err("SBULL: Invalid disk private_data\n");
+        return -ENXIO;
+    }
 
     atomic_inc(&dev->open_counter);
-	pr_info("SBULL: Device was opened. There is %d users\n", atomic_read(&dev->open_counter));
+#ifdef PRINT_INFO
+    pr_info("SBULL: Device was opened. There is %d users\n", atomic_read(&dev->open_counter));
+#endif
 
-	return 0;
+    return 0;
 }
 
 static void _sbull_release(struct gendisk *disk)
 {
-	sbull_dev_t *dev = disk->private_data;
+    sbull_dev_t *dev = disk->private_data;
 
-	if (!dev) {
-		pr_err("SBULL: Invalid disk private_data\n");
-		return;
-	}
+    if (!dev) {
+        pr_err("SBULL: Invalid disk private_data\n");
+        return;
+    }
 
     atomic_dec(&dev->open_counter);
-	pr_info("SBULL: Device was closed. There is %d users\n", atomic_read(&dev->open_counter));
+#ifdef PRINT_INFO
+    pr_info("SBULL: Device was closed. There is %d users\n", atomic_read(&dev->open_counter));
+#endif
+}
+
+static inline int ioctl_hdio_getgeo(sbull_dev_t *dev, unsigned long arg)
+{
+    struct hd_geometry geo = {0};
+
+    geo.start = 0;
+    if (dev->capacity > 63) {
+        sector_t quotient;
+
+        geo.sectors = 63;
+        quotient = (dev->capacity + (63 - 1)) / 63;
+
+        if (quotient > 255) {
+            geo.heads = 255;
+            geo.cylinders = (unsigned short)
+                ((quotient + (255 - 1)) / 255);
+        } else {
+            geo.heads = (unsigned char)quotient;
+            geo.cylinders = 1;
+        }
+    } else {
+        geo.sectors = (unsigned char)dev->capacity;
+        geo.cylinders = 1;
+        geo.heads = 1;
+    }
+
+    if (copy_to_user((void *)arg, &geo, sizeof(geo)))
+        return -EINVAL;
+
+    return 0;
 }
 
 int _sbull_ioctl(struct block_device *bdev, blk_mode_t mode,
-			unsigned cmd, unsigned long arg)
+            unsigned cmd, unsigned long arg)
 {
+#ifdef PRINT_INFO
     pr_info("SBULL: ioctl was called");
+#endif
+
+    sbull_dev_t *dev = bdev->bd_disk->private_data;
+
+    switch (cmd) {
+    case HDIO_GETGEO:
+        return ioctl_hdio_getgeo(dev, arg);
+    case CDROM_GET_CAPABILITY:
+        return -EINVAL;
+    default:
+        return -ENOTTY;
+    }
+
     return -ENOTTY;
 }
 
@@ -108,6 +211,9 @@ static struct block_device_operations sbull_fops = {
     .open = _sbull_open,
     .release = _sbull_release,
     .ioctl = _sbull_ioctl,
+#ifdef BIO_BASED_SBULL
+    .submit_bio = _sbull_submit_bio,
+#endif
 };
 
 sbull_dev_t* sbull_add_device(int major)
@@ -115,7 +221,6 @@ sbull_dev_t* sbull_add_device(int major)
     sbull_dev_t *dev = NULL;
     int ret = 0;
     struct gendisk *disk;
-
     pr_info("SBULL: add device '%s' capacity %d sectors\n", DEVICE_NAME, DEVICE_CAPACITY);
 
     dev = kzalloc(sizeof(sbull_dev_t), GFP_KERNEL);
@@ -132,76 +237,87 @@ sbull_dev_t* sbull_add_device(int major)
         ret = -ENOMEM;
         goto fail_kfree;
     }
+#ifndef BIO_BASED_SBULL
+    ret = init_tag_set(&dev->tag_set, dev);
+    if (ret) {
+        pr_err("SBULL: Failed to allocate tag set\n");
+        goto fail_vfree;
+    }
 
-	ret = init_tag_set(&dev->tag_set, dev);
-	if (ret) {
-		pr_err("SBULL: Failed to allocate tag set\n");
-		goto fail_vfree;
-	}
-
-	disk = blk_mq_alloc_disk(&dev->tag_set, dev);
-	if (unlikely(!disk)) {
-		ret = -ENOMEM;
-		pr_err("SBULL: Failed to allocate disk\n");
-		goto fail_free_tag_set;
-	}
-	if (IS_ERR(disk)) {
-		ret = PTR_ERR(disk);
-		pr_err("SBULL: Failed to allocate disk\n");
-		goto fail_free_tag_set;
-	}
-
+    disk = blk_mq_alloc_disk(&dev->tag_set, dev);
+    if (unlikely(!disk)) {
+        ret = -ENOMEM;
+        pr_err("SBULL: Failed to allocate disk\n");
+        goto fail_free_tag_set;
+    }
+    if (IS_ERR(disk)) {
+        ret = PTR_ERR(disk);
+        pr_err("SBULL: Failed to allocate disk\n");
+        goto fail_free_tag_set;
+    }
+#else
+    disk = blk_alloc_disk(NUMA_NO_NODE);
+    if (!disk) {
+        pr_err("Failed to allocate disk\n");
+        ret = -ENOMEM;
+        goto fail_vfree;
+    }
+#endif
     dev->disk = disk;
 
-	disk->flags |= GENHD_FL_NO_PART;
+    disk->flags |= GENHD_FL_NO_PART;
 
-	disk->major = major;
-	disk->first_minor = 0;
-	disk->minors = 1;
+    disk->major = major;
+    disk->first_minor = 0;
+    disk->minors = 1;
 
-	disk->fops = &sbull_fops;
+    disk->fops = &sbull_fops;
 
-	disk->private_data = dev;
+    disk->private_data = dev;
 
-	sprintf(disk->disk_name, DEVICE_NAME);
-	set_capacity(disk, dev->capacity);
+    sprintf(disk->disk_name, DEVICE_NAME);
+    set_capacity(disk, dev->capacity);
 
-	blk_queue_physical_block_size(disk->queue, SECTOR_SIZE);
-	blk_queue_logical_block_size(disk->queue, SECTOR_SIZE);
-	blk_queue_max_hw_sectors(disk->queue, BLK_DEF_MAX_SECTORS);
-	blk_queue_flag_set(QUEUE_FLAG_NOMERGES, disk->queue);
+    blk_queue_physical_block_size(disk->queue, SECTOR_SIZE);
+    blk_queue_logical_block_size(disk->queue, SECTOR_SIZE);
+    blk_queue_max_hw_sectors(disk->queue, BLK_DEF_MAX_SECTORS);
+    blk_queue_flag_set(QUEUE_FLAG_NOMERGES, disk->queue);
 
-	ret = add_disk(disk);
-	if (ret) {
-		pr_err("SBULL: Failed to add disk '%s'\n", disk->disk_name);
-		goto fail_put_disk;
-	}
+    ret = add_disk(disk);
+    if (ret) {
+        pr_err("SBULL: Failed to add disk '%s'\n", disk->disk_name);
+        goto fail_put_disk;
+    }
 
-	pr_info("SBULL: Simple block device [%d:%d] was added\n", major, 0);
+    pr_info("SBULL: Simple block device [%d:%d] was added\n", major, 0);
 
-	return dev;
+    return dev;
 
 fail_put_disk:
-	put_disk(dev->disk);
+    put_disk(dev->disk);
+#ifndef BIO_BASED_SBULL
 fail_free_tag_set:
-	blk_mq_free_tag_set(&dev->tag_set);
+    blk_mq_free_tag_set(&dev->tag_set);
+#endif
 fail_vfree:
-	vfree(dev->data);
+    vfree(dev->data);
 fail_kfree:
-	kfree(dev);
+    kfree(dev);
 fail:
-	pr_err("SBULL: Failed to add block device\n");
+    pr_err("SBULL: Failed to add block device\n");
 
     return ERR_PTR(ret);
 }
 
 void sbull_remove_device(sbull_dev_t* dev)
 {
-	del_gendisk(dev->disk);
+    del_gendisk(dev->disk);
 
     put_disk(dev->disk);
 
+#ifndef BIO_BASED_SBULL
     blk_mq_free_tag_set(&dev->tag_set);
+#endif
 
     vfree(dev->data);
 
