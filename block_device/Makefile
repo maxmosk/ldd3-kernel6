@@ -1,7 +1,19 @@
 CONFIG_MODULE_SIG=n
 
-#ccflags-y += "-D BIO_BASED_SBULL"
-#ccflags-y += "-D PRINT_INFO"
+CONFIG := $(PWD)/.config
+include ${CONFIG}
+
+ifeq (${CONFIG_BIO_BASED_MODE},y)
+$(info Build sbull in bio based mode)
+	ccflags-y += "-D BIO_BASED_SBULL"
+else
+$(info Build sbull in request based mode)
+endif
+
+ifeq (${CONFIG_BLOCK_DEVICE_INFO},y)
+$(info Build sbull with additional info)
+	ccflags-y += "-D PRINT_INFO"
+endif
 
 ifneq ($(KERNELRELEASE),)
 	sbull-objs := main.o sbull_device.o

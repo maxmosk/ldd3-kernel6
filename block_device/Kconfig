@@ -1,0 +1,10 @@
+config BIO_BASED_MODE
+    bool "Bio based"
+    help
+        If this field is set,the bio based mode will be used.
+        Otherwise request based mode will be used.
+
+config BLOCK_DEVICE_INFO
+    bool "Show info"
+    help
+        Show all info data, when functions is called.

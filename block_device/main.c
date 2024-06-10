@@ -15,6 +15,10 @@ static int __init sbull_init(void)
     pr_info("SBULL: init sbull in bio mode\n");
 #endif
 
+#ifdef PRINT_INFO
+    pr_info("SBULL: print info when fucntions called\n");
+#endif
+
     int ret = 0;
     sbull_major = register_blkdev(sbull_major, DEVICE_NAME);
     if (sbull_major <= 0) {
