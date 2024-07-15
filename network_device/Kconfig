@@ -1,0 +1,23 @@
+config SNULL_TIMEOUT
+    int "SNULL timeout"
+    default 5
+    help
+        Set timeout value in jig
+
+config SNULL_NAPI
+    bool "SNULL napi"
+    default y
+    help
+        Activate napi in SNULL device
+
+config SNULL_LOCKUP
+    int "SNULL lockup"
+    default 0
+    help
+        Transmitter lockup simulation
+
+config POOL_SIZE
+    int "SNULL pool size"
+    default 8
+    help
+        Pool size for SNULL device
