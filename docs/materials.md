@@ -1,59 +1,45 @@
-# TODO - разобрать и проставить линки
-https://fastbitlab.com/tag/linux-device-driver-programming/
-https://fastbitlab.com/creating-device-files/
-https://www.kernel.org/doc/html/next/driver-api/infrastructure.html#c.device_create
+Статьи:
 
-https://habr.com/ru/companies/veeam/articles/446148/ - вот перевод с хабра, кстати говоря
-https://linux-kernel-labs.github.io/refs/heads/master/labs/block_device_drivers.html
-https://prog.world/linux-kernel-5-0-we-write-simple-block-device-under-blk-mq/
+    [1] https://www.kernel.org/doc/html/next/index.html# - полная документация на ядро linux, с некторыми примерами кода
 
-https://www.youtube.com/watch?v=IXBC85SGC0Q&t=1s
-https://www.youtube.com/watch?v=XoYkHUnmpQo
-https://www.youtube.com/watch?v=4QJykWqaY7Q
-https://www.youtube.com/watch?v=kZNFkiUA8CA
-https://www.youtube.com/watch?v=is9wVOKeIjQ
-https://www.youtube.com/watch?v=IXBC85SGC0Q&t=1s
-https://www.youtube.com/watch?v=NYRhkGrt4Q4&list=PLM8zRjaI08aQKKdUIqObqLTp4o5A67pOy
-https://www.youtube.com/watch?v=HbQ6q3skZgw
-https://www.youtube.com/watch?v=lWzFFusYg6g
+    [2] https://prog.world/linux-kernel-5-0-we-write-simple-block-device-under-blk-mq/ - простое блочное устройство для современных ядер
+    [3] https://habr.com/ru/companies/veeam/articles/446148/ - перевод статьи [2] на русский язык
 
+    [4] https://fastbitlab.com/tag/linux-device-driver-programming/ - серия лекций посвященных разработке модулей ядра
+    [5] https://linux-kernel-labs.github.io/refs/heads/master/ - серия лекций и лабораторных работ посвященных операционным системам, с примерами написания моудлей ядра
 
-https://github.com/sysprog21/simplefs
-https://github.com/sysprog21/concurrent-programs
-https://github.com/sysprog21/ksort
-https://github.com/sysprog21/SuperMalloc
-https://github.com/sysprog21/malloc-test-concurrent
-https://github.com/sysprog21/jit-construct
-https://github.com/sysprog21/raytracing
-https://github.com/sysprog21/ogc
-https://github.com/sysprog21/cirbuf
-https://github.com/sysprog21/buddy
-https://github.com/sysprog21/fastcat
-https://github.com/sysprog21/jitcalc
-https://github.com/sysprog21/dict
-https://github.com/sysprog21/sched-plugin
-https://github.com/sysprog21/dont-trace
-https://github.com/sysprog21/concurrent-ll
-https://github.com/sysprog21/raycaster
-https://github.com/eduardogsilva/routerfleet
-https://github.com/cilium/pwru
-https://github.com/georgmartius/vid.stab
+    [6] https://habr.com/ru/companies/yandex/articles/567134/ - Разработка и эксплуатация ядра Linux в инфраструктуре Яндекса
 
+Видео:
 
-https://habr.com/ru/companies/yandex/articles/567134/
-https://linux-kernel-labs.github.io/refs/heads/master/
-https://github.com/dicksites/KUtrace
-https://www.youtube.com/watch?v=E_xrzGlHbac
-https://sysprog21.github.io/lkmpg/
-https://kunit.dev/
-https://linux-kernel-labs.github.io/refs/heads/master/labs/networking.html
-https://docs.kernel.org/kbuild/modules.html
-https://github.com/tuhdo/os01
+    https://www.youtube.com/watch?v=IXBC85SGC0Q&t=1s - запись трансляции написания USB устройства
 
-https://www.youtube.com/watch?v=zDKM7uXsKrQ
-https://www.youtube.com/watch?v=aq0TLYXGQCA
-https://www.youtube.com/watch?v=zGTzeWYfy8o
-https://www.youtube.com/watch?v=cCPMQ-H274g
-https://www.youtube.com/watch?v=OXVtNOk7CmI
-https://www.youtube.com/watch?v=6l0ulgv1OJ4
+    https://www.youtube.com/watch?v=XoYkHUnmpQo - небольшая лекция по структуре модулей и символьным устройствам
 
+    https://www.youtube.com/watch?v=s1OcJB3LOV4&list=PLCGpd0Do5-I0LUuFImUlkj2RhoiMCFPhe - серия видеоуроков по написанию USB устройства
+
+    https://www.youtube.com/watch?v=is9wVOKeIjQ - запись трансляции посвященной реверс инжинирингу USB устройства
+
+    https://www.youtube.com/watch?v=NYRhkGrt4Q4&list=PLM8zRjaI08aQKKdUIqObqLTp4o5A67pOy - серия относительно простых уроков по написанию модулей ядра, рассматриваются символьные и USB устройства
+
+    https://www.youtube.com/watch?v=HbQ6q3skZgw - лекция про принцип работы протокола USB
+
+    https://www.youtube.com/watch?v=wB5PAFnk6L4&list=PLc7W4b0WHTAX4F1Byvs4Bp7c8yCDSiKa9&index=3 - небольшая серия уроков посвященная написанию GPIO модуля для Raspberry Pi
+
+    https://www.youtube.com/@LinuxKernelFoundation/featured - канал посвященный разработке модулей ядра
+
+    https://www.youtube.com/watch?v=Zn8mEZXr6nE&list=PL2GL6HVUQAuksbptmKC7X4zruZlIl59is - серия простых видеоуроков посвященная написанию символьных устройств
+
+Примеры кода на данную тематику:
+
+    https://github.com/sysprog21/simplefs - исходный код модуля простой файловой системы
+    https://github.com/sysprog21/concurrent-programs - исходный код для курса Linux Kernel Internals
+
+    https://github.com/sysprog21/cirbuf - циклический буффер, может быть полезным при написании своих модулей ядра
+
+    Несколько интересных проектов связанных с написанием модулей ядра:
+        https://github.com/sysprog21/ksort
+        https://github.com/sysprog21/sched-plugin
+        https://github.com/sysprog21/dont-trace
+        ps: в принципе в https://github.com/sysprog21 есть множество интересных проектов, которым можно уделить время.
+        https://github.com/dicksites/KUtrace
