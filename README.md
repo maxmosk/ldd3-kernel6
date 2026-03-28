@@ -1,7 +1,7 @@
 # Проект по изучению работы драйверов на современных версиях ядра Linux
 
 Есть два основных материала по разработке драйверов устройств:
-[Linux Device Drivers](https://lwn.net/Kernel/LDD3/) - далее LDD3 и [https://sysprog21.github.io/lkmpg/](The Linux Kernel Module Programming Guide) - далее KLMPG
+[Linux Device Drivers](https://lwn.net/Kernel/LDD3/) - далее LDD3 и [The Linux Kernel Module Programming Guide](https://sysprog21.github.io/lkmpg/) - далее KLMPG
 
 LDD3 написан сравнительно давно и более обширен. KLMPG современнее и легче в чтении.
 
